@@ -23,7 +23,7 @@ site.exp
 # Site file for llvm-lit
 lit.site.cfg
 
-# Autoconf files
+# Autoconf files_z3_z3_z3
 autoconf/aclocal.m4
 autoconf/autom4te.cache/
 autom4te.cache/
@@ -31,3 +31,9 @@ autom4te.cache/
 # Eclipse configuration
 .project
 .cproject
+
+#building helpers 
+.cache/*
+build.sh
+build_native_z3.sh
+compile_commands.json
