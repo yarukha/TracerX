@@ -313,18 +313,13 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
 
   case Expr::Sel: {
     z3::expr t1 = c.bool_val(false);
-    std::cout << "hihi\n";
-    txe->dump();
-    // assert(isaVar(txe->getKid(0)));
-
     bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
     if (r1) {
-      std::cout << "t1 = " << t1 << "\n";
-      std::cout << "t1 sort = " << t1.get_sort() << "\n";
+      z3::expr t_array = z3::const_array(c.int_sort(), t1);
       z3::expr t2 = c.bool_val(false);
       bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
       if (r2) {
-        z3e = select(t1, 0);
+        z3e = select(t_array, t1);
         std::cout << "z3e set to " << z3e << "\n";
         return true;
       }
@@ -335,7 +330,15 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
     std::cerr << "upd not done yet\n";
     return false;
   }
-  case Expr::SExt: { return false; }
+  case Expr::SExt: {
+    z3::expr t = c.bool_val(false);
+    bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap);
+    if (r) {
+      z3e = t;
+      return true;
+    }
+    return false;
+  }
 
   default: {
     // Sanity check
@@ -506,7 +509,6 @@ Z3Simplification::z3Expr2TxExpr(z3::expr e,
 
 z3::expr Z3Simplification::applyTactic(z3::context &c, std::string tactic,
                                        z3::expr e) {
-  std::cout << "simplfying\n";
   z3::goal g(c);
   int timeout = 50;
   g.add(e);
