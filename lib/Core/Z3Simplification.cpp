@@ -6,6 +6,7 @@
  */
 
 #include "Z3Simplification.h"
+#include "klee/Expr.h"
 #include "z3_api.h"
 #include <cassert>
 #include <cstdio>
@@ -91,6 +92,7 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
     case Expr::Int16:
     case Expr::Int32:
     case Expr::Int64: {
+      std::cout << "INT VALUE = " << val << "\n";
       z3e = c.int_val(int(val));
       return true;
     }
@@ -312,29 +314,48 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
 
   case Expr::Sel: {
-    z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    txe->dump();
+    z3::expr t_var = c.bool_val(false);
+    bool r1 = txExpr2z3Expr(t_var, c, txe->getKid(0), emap);
     if (r1) {
-      z3::expr t_array = z3::const_array(c.int_sort(), t1);
-      z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      z3::expr t_index = c.bool_val(false);
+      bool r2 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap);
       if (r2) {
-        z3e = select(t_array, t1);
-        std::cout << "z3e set to " << z3e << "\n";
+        z3::sort s_array = c.array_sort(c.int_sort(), c.int_sort());
+        z3::expr t_array = c.constant(t_var.to_string().c_str(), s_array);
+        z3e = select(t_array, t_index);
         return true;
       }
     }
     return false;
   }
   case Expr::Upd: {
-    std::cerr << "upd not done yet\n";
+    txe->dump();
+    z3::expr t_var = c.bool_val(false);
+    bool r1 = txExpr2z3Expr(t_var, c, txe->getKid(0), emap);
+    if (r1) {
+      z3::expr t_index = c.bool_val(false);
+      bool r2 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap);
+      if (r2) {
+        z3::expr t_update = c.bool_val(false);
+        bool r3 = txExpr2z3Expr(t_update, c, txe->getKid(2), emap);
+        if (r3) {
+          z3::sort s_array =
+              c.array_sort(t_index.get_sort(), t_update.get_sort());
+          z3::expr t_array = z3::const_array(s_array, t_var);
+          z3e = store(t_array, t_index, t_update);
+          return true;
+        }
+      }
+    }
     return false;
   }
   case Expr::SExt: {
+    txe->dump();
     z3::expr t = c.bool_val(false);
     bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap);
     if (r) {
-      z3e = t;
+      z3e = z3::sext(t, txe->getWidth());
       return true;
     }
     return false;
@@ -479,6 +500,14 @@ Z3Simplification::z3Expr2TxExpr(z3::expr e,
         f = OrExpr::create(f, n);
       }
       return f;
+    } else if (symbol == "select") {
+      ref<Expr> a = z3Expr2TxExpr(e.arg(0), emap);
+      ref<Expr> i = z3Expr2TxExpr(e.arg(1), emap);
+      std::cout << "transforming select back" << e << "\n";
+      i->dump();
+      a = SelExpr::create(a, i);
+      a->dump();
+      return a;
     } else {
       // Added a check condition for "ite" (if-then-else) statement;
       if (symbol == "if") {

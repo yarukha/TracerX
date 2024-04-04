@@ -44,23 +44,27 @@ using namespace klee;
 Statistic TxSubsumptionTableEntry::concretelyAddressedStoreExpressionBuildTime(
     "concretelyAddressedStoreExpressionBuildTime", "concreteStoreTime");
 Statistic
-    TxSubsumptionTableEntry::symbolicallyAddressedStoreExpressionBuildTime(
-        "symbolicallyAddressedStoreExpressionBuildTime", "symbolicStoreTime");
+TxSubsumptionTableEntry::symbolicallyAddressedStoreExpressionBuildTime(
+    "symbolicallyAddressedStoreExpressionBuildTime", "symbolicStoreTime");
 Statistic TxSubsumptionTableEntry::solverAccessTime("solverAccessTime",
                                                     "solverAccessTime");
 
 TxSubsumptionTableEntry::TxSubsumptionTableEntry(
     TxTreeNode *node, const std::vector<llvm::Instruction *> &callHistory)
-    : programPoint(node->getProgramPoint()),      
-      nodeSequenceNumber(node->getNodeSequenceNumber()),CfileLineNumber(node->getCfileLineNumber()),CfileName(node->getCfileName()),CFuntionName(node->getCFunctionName()) {
+    : programPoint(node->getProgramPoint()),
+      nodeSequenceNumber(node->getNodeSequenceNumber()),
+      CfileLineNumber(node->getCfileLineNumber()),
+      CfileName(node->getCfileName()), CFuntionName(node->getCFunctionName()) {
   std::map<ref<Expr>, ref<Expr> > substitution;
   existentials.clear();
   interpolant = node->getInterpolant(existentials, substitution);
   prevProgramPoint = node->getPrevProgramPoint();
   phiValues = node->getPhiValue();
-  // klee_message("********** Start of Program Point: %lu Block Instructions **********",node->getProgramPoint());
+  // klee_message("********** Start of Program Point: %lu Block Instructions
+  // **********",node->getProgramPoint());
   // node->getBasicBlock()->dump();
-  // klee_message("*********************** End of Instructions ******************************************\n");
+  // klee_message("*********************** End of Instructions
+  // ******************************************\n");
   node->getStoredCoreExpressions(
       callHistory, substitution, existentials, concretelyAddressedStore,
       symbolicallyAddressedStore, concretelyAddressedHistoricalStore,
@@ -156,8 +160,9 @@ ref<Expr> TxSubsumptionTableEntry::makeConstraint(
   return constraint;
 }
 
-bool TxSubsumptionTableEntry::hasVariableInSet(
-    std::set<const Array *> &existentials, ref<Expr> expr) {
+bool
+TxSubsumptionTableEntry::hasVariableInSet(std::set<const Array *> &existentials,
+                                          ref<Expr> expr) {
   for (int i = 0, numKids = expr->getNumKids(); i < numKids; ++i) {
     if (llvm::isa<ReadExpr>(expr)) {
       ReadExpr *readExpr = llvm::dyn_cast<ReadExpr>(expr);
@@ -563,9 +568,10 @@ ref<Expr> TxSubsumptionTableEntry::simplifyEqualityExpr(
   assert(!"Invalid expression type.");
 }
 
-void TxSubsumptionTableEntry::getSubstitution(
-    std::set<const Array *> &existentials, ref<Expr> equalities,
-    std::map<ref<Expr>, ref<Expr> > &map) {
+void
+TxSubsumptionTableEntry::getSubstitution(std::set<const Array *> &existentials,
+                                         ref<Expr> equalities,
+                                         std::map<ref<Expr>, ref<Expr> > &map) {
   // It is assumed the rhs is an expression on the free variables.
   if (llvm::isa<EqExpr>(equalities)) {
     ref<Expr> lhs = equalities->getKid(0);
@@ -1617,10 +1623,10 @@ bool TxSubsumptionTableEntry::subsumed(
             }
 
             if (debugSubsumptionLevel >= 2) {
-              klee_message("Querying for subsumption check:\n%s",
-                           TxPrettyExpressionBuilder::constructQuery(
-                               state.constraints, expr, debugSubsumptionLevel)
-                               .c_str());
+              klee_message(
+                  "Querying for subsumption check:\n%s",
+                  TxPrettyExpressionBuilder::constructQuery(
+                      state.constraints, expr, debugSubsumptionLevel).c_str());
             }
 
             if (llvm::isa<ExistsExpr>(expr)) {
@@ -1656,10 +1662,10 @@ bool TxSubsumptionTableEntry::subsumed(
 
         } else {
           if (debugSubsumptionLevel >= 2) {
-            klee_message("Querying for subsumption check:\n%s",
-                         TxPrettyExpressionBuilder::constructQuery(
-                             state.constraints, expr, debugSubsumptionLevel)
-                             .c_str());
+            klee_message(
+                "Querying for subsumption check:\n%s",
+                TxPrettyExpressionBuilder::constructQuery(
+                    state.constraints, expr, debugSubsumptionLevel).c_str());
           }
           // We call the solver in the standard way if the
           // formula is unquantified.
@@ -1821,8 +1827,9 @@ void TxSubsumptionTableEntry::print(llvm::raw_ostream &stream,
   std::string tabsNextNext = appendTab(tabsNext);
 
   stream << prefix << "------------ Subsumption Table Entry ------------\n";
-  stream << prefix << "Program point = " << programPoint << "\n"; 
-  stream << prefix << "C-File Name:Function Name:Line number = " << CfileName << ":"<<CFuntionName<<":" <<CfileLineNumber <<"\n";
+  stream << prefix << "Program point = " << programPoint << "\n";
+  stream << prefix << "C-File Name:Function Name:Line number = " << CfileName
+         << ":" << CFuntionName << ":" << CfileLineNumber << "\n";
   if (MarkGlobal) {
     stream << prefix << "global = [";
     for (std::set<ref<TxStoreEntry> >::iterator it = markedGlobal.begin(),
@@ -1962,20 +1969,17 @@ void TxSubsumptionTableEntry::printWP(llvm::raw_ostream &stream,
 
 void TxSubsumptionTableEntry::printStat(std::stringstream &stream) {
   stream << "KLEE: done:     Time for actual solver calls in subsumption check "
-            "(ms) = "
-         << ((double)stats::subsumptionQueryTime.getValue()) / 1000 << "\n";
+            "(ms) = " << ((double)stats::subsumptionQueryTime.getValue()) / 1000
+         << "\n";
   stream << "KLEE: done:     Number of solver calls for subsumption check "
-            "(failed) = "
-         << stats::subsumptionQueryCount.getValue() << " ("
+            "(failed) = " << stats::subsumptionQueryCount.getValue() << " ("
          << stats::subsumptionQueryFailureCount.getValue() << ")\n";
   stream << "KLEE: done:     Concrete store expression build time (ms) = "
          << ((double)concretelyAddressedStoreExpressionBuildTime.getValue()) /
-                1000
-         << "\n";
+                1000 << "\n";
   stream << "KLEE: done:     Symbolic store expression build time (ms) = "
          << ((double)symbolicallyAddressedStoreExpressionBuildTime.getValue()) /
-                1000
-         << "\n";
+                1000 << "\n";
   stream << "KLEE: done:     Solver access time (ms) = "
          << ((double)solverAccessTime.getValue()) / 1000 << "\n";
 }
@@ -2106,11 +2110,12 @@ void TxSubsumptionTable::CallHistoryIndexedTable::print(
 /**/
 
 std::map<uintptr_t, TxSubsumptionTable::CallHistoryIndexedTable *>
-    TxSubsumptionTable::instance;
+TxSubsumptionTable::instance;
 
-void TxSubsumptionTable::insert(
-    uintptr_t id, const std::vector<llvm::Instruction *> &callHistory,
-    TxSubsumptionTableEntry *entry) {
+void
+TxSubsumptionTable::insert(uintptr_t id,
+                           const std::vector<llvm::Instruction *> &callHistory,
+                           TxSubsumptionTableEntry *entry) {
   CallHistoryIndexedTable *subTable = 0;
 
   TxTree::entryNumber++; // Count of entries in the table
@@ -2256,8 +2261,8 @@ uint64_t TxTree::blockCount = 1;
 void TxTree::printTimeStat(std::stringstream &stream) {
   stream << "KLEE: done:     setCurrentINode = "
          << ((double)setCurrentINodeTime.getValue()) / 1000 << "\n";
-  stream << "KLEE: done:     remove = "
-         << ((double)removeTime.getValue()) / 1000 << "\n";
+  stream << "KLEE: done:     remove = " << ((double)removeTime.getValue()) /
+                                               1000 << "\n";
   stream << "KLEE: done:     subsumptionCheck = "
          << ((double)subsumptionCheckTime.getValue()) / 1000 << "\n";
   stream << "KLEE: done:     markPathCondition = "
@@ -2282,8 +2287,7 @@ void TxTree::printTableStat(std::stringstream &stream) {
 
   stream << "KLEE: done:     Average solver calls per subsumption check = "
          << inTwoDecimalPoints((double)stats::subsumptionQueryCount /
-                               (double)subsumptionCheckCount)
-         << "\n";
+                               (double)subsumptionCheckCount) << "\n";
 }
 
 std::string TxTree::inTwoDecimalPoints(const double n) {
@@ -2340,9 +2344,8 @@ bool TxTree::subsumptionCheck(TimingSolver *solver, ExecutionState &state,
   // first instruction executed of the sequence executed for a state
   // node, typically this the first instruction of a basic block.
   // Subsumption check only matches against this first instruction.
-  if (!state.txTreeNode ||
-      reinterpret_cast<uintptr_t>(state.pc->inst) !=
-          state.txTreeNode->getProgramPoint())
+  if (!state.txTreeNode || reinterpret_cast<uintptr_t>(state.pc->inst) !=
+                               state.txTreeNode->getProgramPoint())
     return false;
 
   int debugSubsumptionLevel =
@@ -2435,9 +2438,9 @@ void TxTree::remove(ExecutionState *state, TimingSolver *solver, bool dumping) {
           entry = node->wp->updateSubsumptionTableEntry(entry);
         }
         // if(node->assertionFail){
-	// 	ref<Expr> resetWPExpr = ConstantExpr::alloc(0, Expr::Bool);
-	// 	entry->setWPInterpolant(resetWPExpr);
-	// }
+        // 	ref<Expr> resetWPExpr = ConstantExpr::alloc(0, Expr::Bool);
+        // 	entry->setWPInterpolant(resetWPExpr);
+        // }
       }
 
       TxSubsumptionTable::insert(node->getProgramPoint(),
@@ -2473,7 +2476,7 @@ void TxTree::remove(ExecutionState *state, TimingSolver *solver, bool dumping) {
 #endif
 }
 
-TxTreeNode * TxTree::splitSingle(TxTreeNode *parent, ExecutionState *newState) {
+TxTreeNode *TxTree::splitSingle(TxTreeNode *parent, ExecutionState *newState) {
   TimerStatIncrementer t(splitTime);
   TxTreeNode *const ret = parent->createChild<&TxTreeNode::left>();
   newState->txTreeNode = ret;
@@ -2635,8 +2638,8 @@ Statistic TxTreeNode::bindReturnValueTime("BindReturnValueTime",
 Statistic TxTreeNode::getStoredExpressionsTime("GetStoredExpressionsTime",
                                                "GetStoredExpressionsTime");
 Statistic
-    TxTreeNode::getStoredCoreExpressionsTime("GetStoredCoreExpressionsTime",
-                                             "GetStoredCoreExpressionsTime");
+TxTreeNode::getStoredCoreExpressionsTime("GetStoredCoreExpressionsTime",
+                                         "GetStoredCoreExpressionsTime");
 
 // The interpolation tree node sequence number
 uint64_t TxTreeNode::nextNodeSequenceNumber = 1;
@@ -2656,10 +2659,10 @@ void TxTreeNode::printTimeStat(std::stringstream &stream) {
            << ((double)getWPInterpolantTime.getValue()) / 1000 << "\n";
   stream << "KLEE: done:     addConstraintTime = "
          << ((double)addConstraintTime.getValue()) / 1000 << "\n";
-  stream << "KLEE: done:     splitTime = "
-         << ((double)splitTime.getValue()) / 1000 << "\n";
-  stream << "KLEE: done:     execute = "
-         << ((double)executeTime.getValue()) / 1000 << "\n";
+  stream << "KLEE: done:     splitTime = " << ((double)splitTime.getValue()) /
+                                                  1000 << "\n";
+  stream << "KLEE: done:     execute = " << ((double)executeTime.getValue()) /
+                                                1000 << "\n";
   stream << "KLEE: done:     bindCallArguments = "
          << ((double)bindCallArgumentsTime.getValue()) / 1000 << "\n";
   stream << "KLEE: done:     bindReturnValue = "
@@ -2855,9 +2858,7 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
 
   switch (wpInterpolant->getKind()) {
   case Expr::InvalidKind:
-  case Expr::Constant: {
-    return wpInterpolant;
-  }
+  case Expr::Constant: { return wpInterpolant; }
 
   case Expr::WPVar: {
     // TODO: Not handling multiple copies of a var in store
@@ -2895,7 +2896,7 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
       ref<TxStoreEntry> entry;
       entry = dependency->getStore()
                   ->getAddressofLatestCopyLLVMValueFromHistoricalStore(
-                      WPVar1->address);
+                        WPVar1->address);
 
       if (!entry.isNull()) {
         if (wpInterpolant->getWidth() ==
@@ -2936,7 +2937,8 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
         return dummy;
       }
     }
-    klee_warning("TxTreeNode::instantiateWPatSubsumption: Instantiation failed!");
+    klee_warning(
+        "TxTreeNode::instantiateWPatSubsumption: Instantiation failed!");
     ref<Expr> dummy;
     return dummy;
 
@@ -2998,9 +3000,10 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
         wpInterpolant->getKid(1)->getKind() == Expr::Constant &&
         wpInterpolant->getKind() == Expr::SDiv) {
 
-    	ref<Expr> dummy;
-      klee_warning("TxTreeNode::instantiateWPatSubsumption: Instantiation failed!");
-    	     return dummy;
+      ref<Expr> dummy;
+      klee_warning(
+          "TxTreeNode::instantiateWPatSubsumption: Instantiation failed!");
+      return dummy;
     }
     return wpInterpolant->rebuild(kids);
   }
@@ -3114,9 +3117,11 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
           kids[1] = AddExpr::create(wpInterpolant_nested_index, kids[1]);
         } else {
           if (wpInterpolant_nested_index->getWidth() > kids[1]->getWidth()) {
-            kids[1] = ZExtExpr::create(kids[1],wpInterpolant_nested_index->getWidth());
+            kids[1] = ZExtExpr::create(kids[1],
+                                       wpInterpolant_nested_index->getWidth());
           } else {
-            wpInterpolant_nested_index = ZExtExpr::create(wpInterpolant_nested_index, kids[1]->getWidth());
+            wpInterpolant_nested_index = ZExtExpr::create(
+                wpInterpolant_nested_index, kids[1]->getWidth());
           }
           kids[1] = AddExpr::create(wpInterpolant_nested_index, kids[1]);
         }
@@ -3188,7 +3193,8 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
             dependency->getStore()->getAddressofLatestCopyLLVMValue(val1);
         ref<TxStoreEntry> entry1;
         if (alc1.isNull()) {
-          entry1 = dependency->getStore()
+          entry1 =
+              dependency->getStore()
                   ->getAddressofLatestCopyLLVMValueFromHistoricalStore(val1);
         }
         if (entry1.isNull()) {
@@ -3199,10 +3205,9 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
             const MemoryObject *mo = end->first;
             ObjectState *oj = end->second;
             if (!mo->isFixed) {
-              unsigned int type = mo->size /
-                                  mo->allocSite->getType()
-                                      ->getArrayElementType()
-                                      ->getArrayNumElements();
+              unsigned int type = mo->size / mo->allocSite->getType()
+                                                 ->getArrayElementType()
+                                                 ->getArrayNumElements();
               if (mo->allocSite == val1) {
                 int indexval = dyn_cast<ConstantExpr>(kids[1])->getZExtValue();
                 if (indexval < 0) {
@@ -3278,11 +3283,12 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
       const MemoryObject *mo = end->first;
       ObjectState *oj = end->second;
       if (!mo->isFixed) {
-        unsigned int type = mo->size /
-                            mo->allocSite->getType()
-                                ->getArrayElementType()
-                                ->getArrayNumElements();
+        unsigned int type = mo->size / mo->allocSite->getType()
+                                           ->getArrayElementType()
+                                           ->getArrayNumElements();
         if (mo->allocSite == WPVar1->address) {
+          std::cout << "dumping kid\n";
+          kids[0]->dump();
           kids[1]->dump();
           int indexval = dyn_cast<ConstantExpr>(kids[1])->getZExtValue();
           if (indexval < 0) {
@@ -3305,11 +3311,11 @@ ref<Expr> TxTreeNode::instantiateWPatSubsumption(ref<Expr> wpInterpolant,
     return dummy;
     break;
   }
-  default: {	
-     ref<Expr> dummy;
-     klee_error("TxWPHelper::instantiateWPatSubsumption: Expression not "
+  default: {
+    ref<Expr> dummy;
+    klee_error("TxWPHelper::instantiateWPatSubsumption: Expression not "
                "supported yet!");
-     return dummy;
+    return dummy;
   }
   }
 }
@@ -3415,8 +3421,8 @@ uint64_t TxTreeNode::getInstructionsDepth() { return instructionsDepth; }
 
 void TxTreeNode::incInstructionsDepth() { ++instructionsDepth; }
 
-void TxTreeNode::unsatCoreInterpolation(
-    const std::vector<ref<Expr> > &unsatCore) {
+void
+TxTreeNode::unsatCoreInterpolation(const std::vector<ref<Expr> > &unsatCore) {
   dependency->unsatCoreInterpolation(unsatCore);
 }
 
