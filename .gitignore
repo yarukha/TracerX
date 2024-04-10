@@ -31,6 +31,7 @@ autom4te.cache/
 # Eclipse configuration
 .project
 .cproject
+<<<<<<< HEAD
 
 
 build.sh 
@@ -38,3 +39,6 @@ build_native_z3.sh
 compile_commands.json
 ./.cache/*
 ./.clang-format
+=======
+compile_commands.json
+>>>>>>> building-options
