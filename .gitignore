@@ -34,6 +34,5 @@ autom4te.cache/
 
 #building helpers 
 .cache/*
-build.sh
 build_native_z3.sh
 compile_commands.json
