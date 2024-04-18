@@ -473,6 +473,7 @@ llvm::raw_fd_ostream *KleeHandler::openOutputFile(const std::string &filename) {
 std::string KleeHandler::getTestFilename(const std::string &suffix, unsigned id) {
   std::stringstream filename;
   filename << "test" << std::setfill('0') << std::setw(6) << id << '.' << suffix;
+  std::cout << "FILENAME = " << filename.str() << "\n";
   return filename.str();
 }
 
@@ -482,7 +483,6 @@ llvm::raw_fd_ostream *KleeHandler::openTestFile(const std::string &suffix, unsig
 
 void KleeHandler::writeTestCaseKTest(const std::vector<std::pair<std::string, std::vector<unsigned char> > > &out,
                                      unsigned id) {
-  klee_message("TEST\n");
   KTest b;
   b.numArgs = m_argc;
   b.args = m_argv;
@@ -512,26 +512,27 @@ void KleeHandler::writeTestCaseKTest(const std::vector<std::pair<std::string, st
 void KleeHandler::writeTestCaseXML(bool isError,
                                    const std::vector<std::pair<std::string, std::vector<unsigned char> > > &assignments,
                                    unsigned test_id) {
-
-  // TODO: This is super specific to test-comp and assumes that the name is the
-  // type information
-  auto file = openTestFile("xml", test_id);
-  if (!file)
+  llvm::raw_fd_ostream *file = openTestFile("xml", test_id);
+  std::cout << "TRYING TO OPEN FILE\n";
+  if (!file) {
+    std::cout << "FILE CANNOT BE OPENED\n";
     return;
+  }
 
+  std::cout << "FILE WAS OPENED\n";
   *file << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
-  *file << "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format "
-           "testcase 1.0//EN\" "
-           "\"https://sosy-lab.org/test-format/testcase-1.0.dtd\">\n";
+  *file << "<!DOCTYPE testcase PUBLIC \"+// NUS TracerX testing\"";
+  // "testcase 1.0//EN\" "
+  // "\"https://sosy-lab.org/test-format/testcase-1.0.dtd\">\n";
   *file << "<testcase";
   if (isError)
     *file << " coversError=\"true\"";
   *file << ">\n";
   for (auto &item : assignments) {
     *file << "\t<input variable=\"" << item.first << "\" ";
-    *file << "type =\"";
+    *file << "type=\"";
     // print type of the input
-    *file << item.first;
+    *file << "TODO";
     *file << "\">";
     // Ignore the type
     auto type_size_bytes = item.second.size() * 8;
@@ -540,7 +541,6 @@ void KleeHandler::writeTestCaseXML(bool isError,
       v <<= 8;
       v |= *i;
     }
-    // print value
 
     // Check if this is an unsigned type
     if (item.first.find("u") == 0) {
@@ -549,10 +549,11 @@ void KleeHandler::writeTestCaseXML(bool isError,
       // Pointer types
       v.print(*file, false);
     } else if (item.first.find("float") == 0) {
-      std::cerr << "ERROR\n";
-      // llvm::APFloat(APFloatase::IEEEhalf(), v).print(*file);
+      *file << "POINTER TYPE";
+      // llvm::APFloat(, v).print(*file);
     } else if (item.first.find("double") == 0) {
-      std::cerr << "ERROR\n";
+      *file << "POINTER TYPE";
+      // llvm::APFloat(APFloatBase::IEEEdouble(), v).print(*file);
     } else if (item.first.rfind("_t") != std::string::npos) {
       // arbitrary type, e.g. sector_t
       v.print(*file, false);
@@ -565,9 +566,10 @@ void KleeHandler::writeTestCaseXML(bool isError,
     }
     *file << "</input>\n";
   }
-  *file << "</testcase>\n";
 
+  *file << "</testcase>\n";
   ++m_testIndex;
+  file->close();
 }
 
 /* Outputs all files (.ktest, .pc, .cov etc.) describing a test case */
@@ -591,13 +593,14 @@ void KleeHandler::processTestCase(const ExecutionState &state, const char *error
       klee_warning("unable to get symbolic solution, losing test case");
 
     unsigned test_id = ++m_testIndex;
+    std::cout << "TEST ID = " << test_id << "\n";
 
     if (success) {
       if (!WriteXMLTests) {
-        std::cout << "XML TEST OUTPUT ON\n";
         writeTestCaseKTest(out, test_id);
-      } else
+      } else {
         writeTestCaseXML(errorMessage != nullptr, out, test_id);
+      }
     }
 
     if (errorMessage) {
