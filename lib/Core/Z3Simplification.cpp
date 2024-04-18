@@ -40,7 +40,9 @@ ref<Expr> Z3Simplification::simplify(ref<Expr> txe) {
   if (succ) {
     z3e = applyTactic(c, "simplify", z3e);
     z3e = applyTactic(c, "ctx-solver-simplify", z3e);
+    std::cout << "finished simplification\n";
     ref<Expr> ret = z3Expr2TxExpr(z3e, emap);
+    std::cout << "finished transforming back to tx\n";
     return ret;
   }
   return txe;
@@ -92,12 +94,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
     case Expr::Int16:
     case Expr::Int32:
     case Expr::Int64: {
-      std::cout << "INT VALUE = " << val << "\n";
       z3e = c.int_val(int(val));
       return true;
     }
     default: {
-      txe->dump();
       return false;
     }
     }
@@ -355,7 +355,7 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
     z3::expr t = c.bool_val(false);
     bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap);
     if (r) {
-      z3e = z3::sext(t, txe->getWidth());
+      z3e = t;
       return true;
     }
     return false;
