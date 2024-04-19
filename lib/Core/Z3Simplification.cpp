@@ -8,6 +8,7 @@
 #include "Z3Simplification.h"
 #include "klee/Expr.h"
 #include "z3_api.h"
+#include "llvm/Support/Casting.h"
 #include <cassert>
 #include <cstdio>
 #include <sstream>
@@ -35,14 +36,13 @@ ref<Expr> Z3Simplification::simplify(ref<Expr> txe) {
   }
   z3::context c;
   std::map<std::string, ref<Expr> > emap;
+  std::map<std::string, z3::expr> arrmap;
   z3::expr z3e = c.bool_val(false);
-  bool succ = txExpr2z3Expr(z3e, c, txe, emap);
+  bool succ = txExpr2z3Expr(z3e, c, txe, emap, arrmap);
   if (succ) {
     z3e = applyTactic(c, "simplify", z3e);
     z3e = applyTactic(c, "ctx-solver-simplify", z3e);
-    std::cout << "finished simplification\n";
     ref<Expr> ret = z3Expr2TxExpr(z3e, emap);
-    std::cout << "finished transforming back to tx\n";
     return ret;
   }
   return txe;
@@ -50,8 +50,8 @@ ref<Expr> Z3Simplification::simplify(ref<Expr> txe) {
 
 bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
                                      ref<Expr> txe,
-                                     std::map<std::string, ref<Expr> > &emap) {
-
+                                     std::map<std::string, ref<Expr> > &emap,
+                                     std::map<std::string, z3::expr> &arrmap) {
   if (isaVar(txe)) {
     std::string name = extractVarName(txe);
     unsigned int size = txe->getWidth();
@@ -97,16 +97,14 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
       z3e = c.int_val(int(val));
       return true;
     }
-    default: {
-      return false;
-    }
+    default: { return false; }
     }
     break;
   }
 
   case Expr::Not: {
     z3::expr t = c.bool_val(false);
-    bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap);
+    bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap, arrmap);
     if (r) {
       if (!t.is_bool()) {
         klee_warning("Z3Simplification: doesn't support NOT "
@@ -120,10 +118,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Eq: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 == t2);
         return true;
@@ -133,10 +131,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Ne: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 != t2);
         return true;
@@ -147,10 +145,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::Ult:
   case Expr::Slt: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 < t2);
         return true;
@@ -161,10 +159,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::Ule:
   case Expr::Sle: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 <= t2);
         return true;
@@ -175,10 +173,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::Ugt:
   case Expr::Sgt: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 > t2);
         return true;
@@ -189,10 +187,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::Uge:
   case Expr::Sge: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 >= t2);
         return true;
@@ -203,10 +201,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
 
   case Expr::Add: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 + t2);
         return true;
@@ -216,10 +214,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Sub: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 - t2);
         return true;
@@ -229,10 +227,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Mul: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 * t2);
         return true;
@@ -243,10 +241,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::UDiv:
   case Expr::SDiv: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 / t2);
         return true;
@@ -257,10 +255,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::URem:
   case Expr::SRem: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = rem(t1, t2);
         return true;
@@ -270,10 +268,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::And: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 && t2);
         return true;
@@ -283,10 +281,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Or: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         z3e = (t1 || t2);
         return true;
@@ -296,10 +294,10 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Xor: {
     z3::expr t1 = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap);
+    bool r1 = txExpr2z3Expr(t1, c, txe->getKid(0), emap, arrmap);
     if (r1) {
       z3::expr t2 = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap);
+      bool r2 = txExpr2z3Expr(t2, c, txe->getKid(1), emap, arrmap);
       if (r2) {
         if (!t1.is_bool() || !t2.is_bool()) {
           klee_warning("Z3Simplification: doesn't support XOR "
@@ -315,14 +313,13 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
 
   case Expr::Sel: {
     txe->dump();
-    z3::expr t_var = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t_var, c, txe->getKid(0), emap);
+    z3::expr t_index = c.bool_val(false);
+    bool r1 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap, arrmap);
     if (r1) {
-      z3::expr t_index = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap);
+      z3::expr t_array = c.bool_val(false);
+      z3::sort sort = c.array_sort(t_index.get_sort(), c.int_sort());
+      bool r2 = findArray(t_array, c, txe->getKid(0), sort, emap, arrmap);
       if (r2) {
-        z3::sort s_array = c.array_sort(c.int_sort(), c.int_sort());
-        z3::expr t_array = c.constant(t_var.to_string().c_str(), s_array);
         z3e = select(t_array, t_index);
         return true;
       }
@@ -331,18 +328,16 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   }
   case Expr::Upd: {
     txe->dump();
-    z3::expr t_var = c.bool_val(false);
-    bool r1 = txExpr2z3Expr(t_var, c, txe->getKid(0), emap);
+    z3::expr t_index = c.bool_val(false);
+    bool r1 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap, arrmap);
     if (r1) {
-      z3::expr t_index = c.bool_val(false);
-      bool r2 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap);
+      z3::expr t_update = c.bool_val(false);
+      bool r2 = txExpr2z3Expr(t_update, c, txe->getKid(2), emap, arrmap);
       if (r2) {
-        z3::expr t_update = c.bool_val(false);
-        bool r3 = txExpr2z3Expr(t_update, c, txe->getKid(2), emap);
+        z3::sort sort = c.array_sort(t_index.get_sort(), t_update.get_sort());
+        z3::expr t_array = c.bool_val(false);
+        bool r3 = findArray(t_array, c, txe->getKid(0), sort, emap, arrmap);
         if (r3) {
-          z3::sort s_array =
-              c.array_sort(t_index.get_sort(), t_update.get_sort());
-          z3::expr t_array = z3::const_array(s_array, t_var);
           z3e = store(t_array, t_index, t_update);
           return true;
         }
@@ -353,7 +348,7 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
   case Expr::SExt: {
     txe->dump();
     z3::expr t = c.bool_val(false);
-    bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap);
+    bool r = txExpr2z3Expr(t, c, txe->getKid(0), emap, arrmap);
     if (r) {
       z3e = t;
       return true;
@@ -503,10 +498,7 @@ Z3Simplification::z3Expr2TxExpr(z3::expr e,
     } else if (symbol == "select") {
       ref<Expr> a = z3Expr2TxExpr(e.arg(0), emap);
       ref<Expr> i = z3Expr2TxExpr(e.arg(1), emap);
-      std::cout << "transforming select back" << e << "\n";
-      i->dump();
       a = SelExpr::create(a, i);
-      a->dump();
       return a;
     } else {
       // Added a check condition for "ite" (if-then-else) statement;
@@ -585,5 +577,29 @@ std::string Z3Simplification::extractVarName(ref<Expr> e) {
     return dyn_cast<ReadExpr>(e->getKid(0))->getName();
   default:
     return "";
+  }
+}
+
+bool Z3Simplification::findArray(z3::expr &z3e, z3::context &c, ref<Expr> txe,
+                                 z3::sort sort,
+                                 std::map<std::string, ref<Expr> > &emap,
+                                 std::map<std::string, z3::expr> arrmap) {
+  switch (txe->getKind()) {
+  case Expr::WPVar: {
+    std::string name = extractVarName(txe);
+    emap.insert(std::pair<std::string, ref<Expr> >(name, txe));
+    auto i = arrmap.find(name);
+    if (i != arrmap.end()) {
+      assert(i->second.is_array() && (i->second.get_sort() = sort));
+      z3e = i->second;
+    } else {
+      z3::expr t_array = c.constant(name.c_str(), sort);
+      z3e = t_array;
+      arrmap.insert(std::pair<std::string, z3::expr>(name, t_array));
+    }
+    return true;
+  }
+  default:
+    return false;
   }
 }
