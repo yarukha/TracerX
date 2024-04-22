@@ -473,7 +473,6 @@ llvm::raw_fd_ostream *KleeHandler::openOutputFile(const std::string &filename) {
 std::string KleeHandler::getTestFilename(const std::string &suffix, unsigned id) {
   std::stringstream filename;
   filename << "test" << std::setfill('0') << std::setw(6) << id << '.' << suffix;
-  std::cout << "FILENAME = " << filename.str() << "\n";
   return filename.str();
 }
 
@@ -513,13 +512,6 @@ void KleeHandler::writeTestCaseXML(bool isError,
                                    const std::vector<std::pair<std::string, std::vector<unsigned char> > > &assignments,
                                    unsigned test_id) {
   llvm::raw_fd_ostream *file = openTestFile("xml", test_id);
-  std::cout << "TRYING TO OPEN FILE\n";
-  if (!file) {
-    std::cout << "FILE CANNOT BE OPENED\n";
-    return;
-  }
-
-  std::cout << "FILE WAS OPENED\n";
   *file << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
   *file << "<!DOCTYPE testcase PUBLIC \"+// NUS TracerX testing\"";
   // "testcase 1.0//EN\" "
@@ -593,7 +585,6 @@ void KleeHandler::processTestCase(const ExecutionState &state, const char *error
       klee_warning("unable to get symbolic solution, losing test case");
 
     unsigned test_id = ++m_testIndex;
-    std::cout << "TEST ID = " << test_id << "\n";
 
     if (success) {
       if (!WriteXMLTests) {
@@ -1458,10 +1449,11 @@ int main(int argc, char **argv, char **envp) {
 
   if (WriteXMLTests) {
     // Write metadata.xml
+    // llvm::raw_fd_ostream *file = openTestFile("xml", test_id);
     auto meta_file = handler->openOutputFile("metadata.xml");
-    if (!meta_file)
+    if (!meta_file) {
       klee_error("Could not write metadata.xml");
-
+    }
     *meta_file << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
     *meta_file << "<!DOCTYPE test-metadata PUBLIC \"+//IDN sosy-lab.org//DTD "
                   "test-format test-metadata 1.0//EN\" "
@@ -1488,6 +1480,7 @@ int main(int argc, char **argv, char **envp) {
     t << std::put_time(std::localtime(&startTime), "%Y-%m-%dT%H:%M:%SZ");
     *meta_file << "\t<creationtime>" << t.str() << "</creationtime>\n";
     *meta_file << "</test-metadata>\n";
+    meta_file->close();
   }
 
   char buf[256];
