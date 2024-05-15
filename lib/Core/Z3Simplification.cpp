@@ -317,6 +317,7 @@ bool Z3Simplification::txExpr2z3Expr(z3::expr &z3e, z3::context &c,
     bool r1 = txExpr2z3Expr(t_index, c, txe->getKid(1), emap, arrmap);
     if (r1) {
       z3::expr t_array = c.bool_val(false);
+      // we assume that all array types are integers.
       z3::sort sort = c.array_sort(t_index.get_sort(), c.int_sort());
       bool r2 = findArray(t_array, c, txe->getKid(0), sort, emap, arrmap);
       if (r2) {
