@@ -522,37 +522,37 @@ void KleeHandler::writeTestCaseXML(bool isError,
   *file << ">\n";
   for (auto &item : assignments) {
     *file << "\t<input variable=\"" << item.first << "\" ";
-    // for now, we only deal with int types, ignoring arrays
-    *file << "type=\"int\">";
+    // in Test-Comp, the type is the name of the variable
+    *file << "type=\"" << item.first << "\">";
     auto type_size_bytes = item.second.size() * 8;
     llvm::APInt v(type_size_bytes, 0, false);
     for (auto i = item.second.rbegin(), e = item.second.rend(); i != e; ++i) {
       v <<= 8;
       v |= *i;
     }
-
-    // Check if this is an unsigned type
-    if (item.first.find("u") == 0) {
-      v.print(*file, false);
-    } else if (item.first.rfind("*") != std::string::npos) {
-      // Pointer types
-      v.print(*file, false);
-    } else if (item.first.find("float") == 0) {
-      *file << "POINTER TYPE";
-      // llvm::APFloat(, v).print(*file);
-    } else if (item.first.find("double") == 0) {
-      *file << "POINTER TYPE";
-      // llvm::APFloat(APFloatBase::IEEEdouble(), v).print(*file);
-    } else if (item.first.rfind("_t") != std::string::npos) {
-      // arbitrary type, e.g. sector_t
-      v.print(*file, false);
-    } else if (item.first.find("_") == 0) {
-      // _Bool
-      v.print(*file, false);
-    } else {
-      // the rest must be signed
-      v.print(*file, true);
-    }
+    v.print(*file, false);
+    // // Check if this is an unsigned type
+    // // if (item.first.find("u") == 0) {
+    // //   v.print(*file, false);
+    // // } else if (item.first.rfind("*") != std::string::npos) {
+    // //   // Pointer types
+    // //   v.print(*file, false);
+    // if (item.first.find("float") == 0) {
+    //   *file << "POINTER TYPE";
+    //   // llvm::APFloat(, v).print(*file);
+    // } else if (item.first.find("double") == 0) {
+    //   *file << "POINTER TYPE";
+    //   // llvm::APFloat(APFloatBase::IEEEdouble(), v).print(*file);
+    // } else if (item.first.rfind("_t") != std::string::npos) {
+    //   // arbitrary type, e.g. sector_t
+    //   v.print(*file, false);
+    // } else if (item.first.find("_") == 0) {
+    //   // _Bool
+    //   v.print(*file, false);
+    // } else {
+    //   // the rest must be signed
+    //   v.print(*file, true);
+    // }
     *file << "</input>\n";
   }
 
