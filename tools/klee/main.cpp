@@ -523,7 +523,7 @@ void KleeHandler::writeTestCaseXML(bool isError,
   for (auto &item : assignments) {
     *file << "\t<input variable=\"" << item.first << "\" ";
     // for now, we only deal with int types, ignoring arrays
-    *file << "type=int\n";
+    *file << "type=\"int\">";
     auto type_size_bytes = item.second.size() * 8;
     llvm::APInt v(type_size_bytes, 0, false);
     for (auto i = item.second.rbegin(), e = item.second.rend(); i != e; ++i) {
