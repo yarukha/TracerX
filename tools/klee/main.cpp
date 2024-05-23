@@ -530,29 +530,30 @@ void KleeHandler::writeTestCaseXML(bool isError,
       v <<= 8;
       v |= *i;
     }
-    v.print(*file, false);
-    // // Check if this is an unsigned type
-    // // if (item.first.find("u") == 0) {
-    // //   v.print(*file, false);
-    // // } else if (item.first.rfind("*") != std::string::npos) {
-    // //   // Pointer types
-    // //   v.print(*file, false);
-    // if (item.first.find("float") == 0) {
-    //   *file << "POINTER TYPE";
-    //   // llvm::APFloat(, v).print(*file);
-    // } else if (item.first.find("double") == 0) {
-    //   *file << "POINTER TYPE";
-    //   // llvm::APFloat(APFloatBase::IEEEdouble(), v).print(*file);
-    // } else if (item.first.rfind("_t") != std::string::npos) {
-    //   // arbitrary type, e.g. sector_t
-    //   v.print(*file, false);
-    // } else if (item.first.find("_") == 0) {
-    //   // _Bool
-    //   v.print(*file, false);
-    // } else {
-    //   // the rest must be signed
-    //   v.print(*file, true);
-    // }
+    // Check if this is an unsigned type
+    if (item.first.find("u") == 0) {
+      v.print(*file, false);
+    } else if (item.first.rfind("*") != std::string::npos) {
+      // Pointer types
+      v.print(*file, false);
+    } else if (item.first.find("char") == 0) {
+      *file << char(v.getZExtValue());
+    } else if (item.first.find("float") == 0) {
+      *file << "FLOAT TYPE NOT MANAGED";
+      // llvm::APFloat(, v).print(*file);
+    } else if (item.first.find("double") == 0) {
+      *file << "DOUBLE TYPE NOT MANAGED";
+      // llvm::APFloat(APFloatBase::IEEEdouble(), v).print(*file);
+    } else if (item.first.rfind("_t") != std::string::npos) {
+      // arbitrary type, e.g. sector_t
+      v.print(*file, false);
+    } else if (item.first.find("_") == 0) {
+      // _Bool
+      v.print(*file, false);
+    } else {
+      // the rest must be signed
+      v.print(*file, true);
+    }
     *file << "</input>\n";
   }
 
