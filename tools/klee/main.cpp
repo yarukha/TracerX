@@ -513,9 +513,7 @@ void KleeHandler::writeTestCaseXML(bool isError,
                                    unsigned test_id) {
   llvm::raw_fd_ostream *file = openTestFile("xml", test_id);
   *file << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
-  *file << "<!DOCTYPE testcase PUBLIC \"+// NUS TracerX testing\"";
-  // "testcase 1.0//EN\" "
-  // "\"https://sosy-lab.org/test-format/testcase-1.0.dtd\">\n";
+  *file << "<!DOCTYPE testcase PUBLIC \"+// NUS TracerX testing\" \"https://tracer-x.github.io/\">";
   *file << "<testcase";
   if (isError)
     *file << " coversError=\"true\"";
