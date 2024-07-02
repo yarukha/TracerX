@@ -532,14 +532,14 @@ Z3Simplification::z3Expr2TxExpr(z3::expr e,
 z3::expr Z3Simplification::applyTactic(z3::context &c, std::string tactic,
                                        z3::expr e) {
   z3::goal g(c);
-  int timeout = 50;
+  // int timeout = 50;
   g.add(e);
   z3::tactic t(c, tactic.c_str());
   z3::tactic &t_ref = t;
-  if (tactic == "ctx-solver-simplify") {
-    z3::tactic t_skip(c, "skip");
-    t_ref = z3::try_for(t, timeout) | t_skip;
-  }
+  // if (tactic == "ctx-solver-simplify") {
+  //   z3::tactic t_skip(c, "skip");
+  //   t_ref = z3::try_for(t, timeout) | t_skip;
+  // }
   z3::apply_result r = t_ref(g);
   assert(r.size() > 0 && "apply result is empty!");
   z3::expr ret = r[0].as_expr();
