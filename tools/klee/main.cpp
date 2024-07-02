@@ -23,6 +23,7 @@
 #include "klee/Internal/Support/PrintVersion.h"
 #include "klee/Internal/Support/ErrorHandling.h"
 #include "klee/util/TxTreeGraph.h"
+#include "llvm/Support/Casting.h"
 #include <iostream>
 
 #if LLVM_VERSION_CODE > LLVM_VERSION(3, 2)
@@ -534,8 +535,9 @@ void KleeHandler::writeTestCaseXML(bool isError,
     } else if (item.first.rfind("*") != std::string::npos) {
       // Pointer types
       v.print(*file, false);
-    } else if (item.first.find("char") == 0) {
-      *file << char(v.getZExtValue());
+      // Displaying a char instead of a corresponding integer resulted in testcov failures
+      // } else if (item.first.find("char") == 0) {
+      // *file << static_cast<char>(item.secondue());
     } else if (item.first.find("float") == 0) {
       *file << "FLOAT TYPE NOT MANAGED";
       // llvm::APFloat(, v).print(*file);
